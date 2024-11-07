@@ -1,0 +1,12 @@
+/node_modules
+/input
+# /app
+package-lock.json
+*.code-workspace
+*.webm
+*.mp4
+.DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store
+*.ckpt
