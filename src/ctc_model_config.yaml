@@ -38,7 +38,7 @@ labels:
 - я
 
 preprocessor:
-  _target_: __main__.AudioToMelSpectrogramPreprocessor
+  _target_: nemo.collections.asr.modules.AudioToMelSpectrogramPreprocessor
   sample_rate: 16000
   n_fft: 400
   n_window_size: 400
