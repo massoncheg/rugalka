@@ -3,7 +3,6 @@ from typing import List, Tuple
 import numpy as np
 import logging
 from silero_vad import read_audio  # Убрали импорт get_speech_timestamps
-from sympy import false
 import torch
 import torchaudio
 from nemo.collections.asr.models import EncDecCTCModel
@@ -18,17 +17,14 @@ import json
 import sys
 import tkinter as tk
 from tkinter import filedialog
-import logging
-import os
 
 logger = logging.getLogger(__name__)
 BATCH_SIZE = 4
-path_to_conf_weights = "../config/ctc_model_weights.ckpt"
-path_to_conf_config = "../config/ctc_model_config.yaml"
 
+CONFIG_DIR = os.path.join(os.path.dirname(__file__), "..", "config")
 
-
-import json
+path_to_conf_weights = os.path.join(CONFIG_DIR, "ctc_model_weights.ckpt")
+path_to_conf_config = os.path.join(CONFIG_DIR, "ctc_model_config.yaml")
 
 
 def read_large_json(file_path):
@@ -37,7 +33,7 @@ def read_large_json(file_path):
             for line in f:
                 yield json.loads(line)
     except json.JSONDecodeError as e:
-        print(f"Ошибка чтения JSON: {e}")
+        logger.error(f"Ошибка чтения JSON: {e}")
 
 
 def file_exist(in_file_path):
@@ -135,19 +131,6 @@ def init_process():
 
 def transcribe_batch(batch):
     return local_model.transcribe(batch, batch_size=BATCH_SIZE)
-
-
-def format_time(seconds):
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    seconds = seconds % 60
-    full_seconds = int(seconds)
-    milliseconds = int((seconds - full_seconds) * 1000)
-
-    if hours > 0:
-        return f"{hours:02}:{minutes:02}:{full_seconds:02}:{milliseconds:03}"
-    else:
-        return f"{minutes:02}:{full_seconds:02}:{milliseconds:03}"
 
 
 def generate_code_from_file(file_path):

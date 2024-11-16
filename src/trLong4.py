@@ -18,7 +18,6 @@ import sys
 import tkinter as tk
 from tkinter import filedialog
 import msgpack
-import numpy as np
 
 from utils.utils import (
     file_exist,
@@ -30,14 +29,12 @@ from utils.utils import (
     read_large_json,
 )
 
-
 locale.getpreferredencoding = lambda: "UTF-8"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 root = tk.Tk()
 root.withdraw()
-
 
 def get_user_inputs():
     logger.info("get_user_inputs !!!!")
@@ -60,39 +57,31 @@ def get_user_inputs():
 
     return PATH_TO_INPUT_FILE, SEL_OUTPUT_DIR
 
-
-PATH_TO_INPUT_FILE, SEL_OUTPUT_DIR = get_user_inputs()
-# сгенерировать уникальное имя
-hashName = generate_code_from_file(PATH_TO_INPUT_FILE)
-# может быть как видео так и аудио
-input_file_extension = os.path.splitext(PATH_TO_INPUT_FILE)[1]
-
-OUTPUT_DIR = os.path.join(SEL_OUTPUT_DIR, hashName)
-BATCH_SIZE = 4
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-
-temp_segments = False
-output_tmp_dir = os.path.join(OUTPUT_DIR, "tmp")
-force_re_segmentation = False
-search_words = {"бля", "сук", "пид"}
-
-
 def main():
+    PATH_TO_INPUT_FILE, SEL_OUTPUT_DIR = get_user_inputs()
+    # Сгенерировать уникальное имя
+    hashName = generate_code_from_file(PATH_TO_INPUT_FILE)
+    # Может быть как видео, так и аудио
+    input_file_extension = os.path.splitext(PATH_TO_INPUT_FILE)[1]
+
+    OUTPUT_DIR = os.path.join(SEL_OUTPUT_DIR, hashName)
+    BATCH_SIZE = 4
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    temp_segments = False
+    output_tmp_dir = os.path.join(OUTPUT_DIR, "tmp")
+    force_re_segmentation = False
+    search_words = {"бля", "сук", "пид"}
+
     os.makedirs(output_tmp_dir, exist_ok=True)
 
     path_to_audio_file = os.path.join(output_tmp_dir, f"{hashName}_extracted_audio.wav")
 
     if not file_exist(path_to_audio_file):
         if input_file_extension in [".wav"]:
-            #
             path_to_audio_file = PATH_TO_INPUT_FILE
-
         elif input_file_extension in [".mp4", ".webm", ".mp3", ".opus"]:
-
-            # Временный путь для сохранения аудио в формате WAV
-
-            # Извлечение аудио из MP4 с помощью ffmpeg
+            # Извлечение аудио с помощью ffmpeg
             subprocess.run(
                 [
                     "ffmpeg",
@@ -110,12 +99,11 @@ def main():
                 check=True,
             )
         else:
-            #
             logger.error(f"Ошибка: файлы {input_file_extension} не поддерживаются")
             sys.exit(1)
 
     if not file_exist(path_to_audio_file):
-        logger.error(f"Ошибка: исходно файла {path_to_audio_file} не существует")
+        logger.error(f"Ошибка: исходный файл {path_to_audio_file} не существует")
         sys.exit(1)
     # Прочитать аудиофайл
     fileW = read_audio(path_to_audio_file, sampling_rate=16000)
@@ -127,7 +115,7 @@ def main():
     need_to_segment = True
 
     try:
-        # загрузить файл
+        # Загрузить файл
         with open(segm_output_file_path, "rb") as f:
             data = msgpack.load(f)
             segments = [np.array(segment) for segment in data["segments"]]
@@ -142,7 +130,7 @@ def main():
         )
 
     if need_to_segment:
-        logger.info("будет выполнена сегментация")
+        logger.info("Будет выполнена сегментация")
         # Загрузка модели VAD
         vad_model, utils = torch.hub.load(
             repo_or_dir="snakers4/silero-vad", model="silero_vad", trust_repo=True
@@ -186,7 +174,7 @@ def main():
             file_path = os.path.join(output_tmp_dir, f"{hashName}_{i}.wav")
             if not file_exist(file_path):
                 torchaudio.save(file_path, torch.tensor(segment).unsqueeze(0), 16000)
-                logger.info(f"Создан Файл '{file_path}'")
+                logger.info(f"Создан файл '{file_path}'")
             file_paths.append(file_path)
 
     trans_result_file_path = os.path.join(
@@ -203,7 +191,7 @@ def main():
                     for i in range(0, len(file_paths), BATCH_SIZE)
                 ],
             )
-            # сегменты текста
+            # Сегменты текста
             transcriptions = [trans for result in results for trans in result]
         with open(trans_result_file_path, "w", encoding="utf-8") as f:
             json.dump(transcriptions, f, ensure_ascii=False, indent=4)
@@ -218,7 +206,7 @@ def main():
                 f.write(f"{transcription}\n")
         logger.info(f"Чистая транскрипция сохранена в файл {out_trans_file_path}")
     else:
-        logger.info(f"Чистая транскрипция {out_trans_file_path} \nуже существует")
+        logger.info(f"Чистая транскрипция {out_trans_file_path} уже существует")
 
     out_trans_time_file_path = os.path.join(
         OUTPUT_DIR, f"{hashName}_transcription_time.txt"
@@ -230,33 +218,17 @@ def main():
                 boundary_1 = format_time(boundary[1])
                 f.write(f"[{boundary_0} - {boundary_1}]: {transcription}\n")
         logger.info(
-            f"Транскрипция с временными метками сохранена в файл {out_trans_time_file_path}\n\n"
+            f"Транскрипция с временными метками сохранена в файл {out_trans_time_file_path}"
         )
     else:
         logger.info(
-            f"Транскрипция с временными метками {out_trans_time_file_path} \nуже существует"
+            f"Транскрипция с временными метками {out_trans_time_file_path} уже существует"
         )
-
-    # search_results = []
-    # for transcription, boundary in zip(transcriptions, boundaries):
-    #     words = transcription.split()
-    #     start_time = boundary[0]
-
-    #     for word in words:
-    #         normalized_word = word.lower().strip(",.?!")  # Убираем знаки препинания
-    #         if normalized_word in search_words:
-    #             search_results.append((normalized_word, start_time))
-
-    # with open(f"{outputDir}{hashName}_searchResult.txt", "w", encoding="utf-8") as f:
-    #     for word, start_time in search_results:
-    #         formatted_time = format_time(start_time)
-    #         f.write(f"{word}: {formatted_time}\n")
-
+        
 
 if __name__ == "__main__":
     try:
         main()
-
     except RuntimeError as e:
         logger.error(f"Ошибка: {e}")
         sys.exit(1)  # Завершить
